@@ -6,7 +6,7 @@ from conans import CMake
 
 class GnutlsConan(ConanFile):
     name = "gnutls"
-    version = "1.7.3"
+    version = "3.4.16"
     branch = "master"
     ZIP_FOLDER_NAME = "gnutls-%s" % version
     generators = "cmake"
@@ -22,7 +22,8 @@ class GnutlsConan(ConanFile):
                "disable_aesni_support": [True, False],
                "disable_O_flag_munging": [True, False]}
                #TODO add in non-binary flags
-    requires = 'nettle/1.24@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
+    requires = 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
+    # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
     url = "http://github.com/DEGoodmanWilson/conan-gnutls"
     default_options = "shared=False", "enable_m_guard=False", "disable_asm=False", \
@@ -32,8 +33,9 @@ class GnutlsConan(ConanFile):
 
     def source(self):
         zip_name = "gnutls-%s.tar.gz" % self.version
-        download("https://ftp.gnu.org/gnu/gnutls//%s" % zip_name, zip_name)
-        check_md5(zip_name, "bb5b00cb70b1215833857fd690080fbb")
+        # download("http://ftp.heanet.ie/mirrors/ftp.gnupg.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
+        download("https://www.dropbox.com/s/7h0a0b0gfmkjp42/%s?dl=1" % zip_name, zip_name)
+        check_md5(zip_name, "093777651b9cb41f66122991c5bf3d42")
         unzip(zip_name)
         os.unlink(zip_name)
 
@@ -42,10 +44,24 @@ class GnutlsConan(ConanFile):
 
     def generic_env_configure_vars(self, verbose=False):
         """Reusable in any lib with configure!!"""
+	
+        # find nettle and hogweed paths
+        nettle_lib_path = ""
+        nettle_include_path = ""
+        gmp_lib_path = ""
+        gmp_include_path = ""
+        for path in self.deps_cpp_info.lib_paths:
+            if "nettle" in path:
+                nettle_lib_path = path
+            elif "gmp" in path:
+                gmp_lib_path = path
 
-        if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return
+        for path in self.deps_cpp_info.include_paths:
+            if "nettle" in path:
+                nettle_include_path = path
+            elif "gmp" in path:
+                gmp_include_path = path
+
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             libs = 'LIBS="%s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
@@ -53,14 +69,16 @@ class GnutlsConan(ConanFile):
             archflag = "-m32" if self.settings.arch == "x86" else ""
             cflags = 'CFLAGS="-fPIC %s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
             cpp_flags = 'CPPFLAGS="%s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cppflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
-            command = "env %s %s %s %s" % (libs, ldflags, cflags, cpp_flags)
+            package_flags = 'NETTLE_CFLAGS="-I%s" NETTLE_LIBS="-L%s -lnettle" HOGWEED_CFLAGS="-I%s" HOGWEED_LIBS="-L%s -lhogweed" GMP_CFLAGS="-I%s" GMP_LIBS="-L%s -lgmp"' % (nettle_include_path, nettle_lib_path, nettle_include_path, nettle_lib_path, gmp_include_path, gmp_lib_path)
+            command = "env %s %s %s %s %s" % (libs, ldflags, cflags, cpp_flags, package_flags)
         elif self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
             cl_args = " ".join(['/I"%s"' % lib for lib in self.deps_cpp_info.include_paths])
             lib_paths= ";".join(['"%s"' % lib for lib in self.deps_cpp_info.lib_paths])
             command = "SET LIB=%s;%%LIB%% && SET CL=%s" % (lib_paths, cl_args)
             if verbose:
                 command += " && SET LINK=/VERBOSE"
-        
+
+
         return command
        
     def build(self):
@@ -87,7 +105,8 @@ class GnutlsConan(ConanFile):
                 gpg_error_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 break
 
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --with-libgpg-error-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), gpg_error_path, config_options_string)
+	# TODO remove --without-p11-kit
+        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --with-included-libtasn1 --enable_local_libopts --with-libgpg-error-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), gpg_error_path, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
