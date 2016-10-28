@@ -22,7 +22,7 @@ class GnutlsConan(ConanFile):
                "disable_aesni_support": [True, False],
                "disable_O_flag_munging": [True, False]}
                #TODO add in non-binary flags
-    requires = 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
+    requires = 'libiconv/1.14@lasote/stable', 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
     url = "http://github.com/DEGoodmanWilson/conan-gnutls"
@@ -65,7 +65,7 @@ class GnutlsConan(ConanFile):
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             libs = 'LIBS="%s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
-            ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
+            ldflags = 'LDFLAGS="%s -liconv"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
             cflags = 'CFLAGS="-fPIC %s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
             cpp_flags = 'CPPFLAGS="%s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cppflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
@@ -98,15 +98,14 @@ class GnutlsConan(ConanFile):
                 self.output.info("Activated option! %s" % option_name)
                 config_options_string += " --%s" % option_name.replace("_", "-")
 
-        # find the libgpg-error folder, so we can set the binary path for configuring it
-        gpg_error_path = ""
+        iconv_prefix = ""
         for path in self.deps_cpp_info.lib_paths:
-            if "libgpg-error" in path:
-                gpg_error_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
+            if "iconv" in path:
+                iconv_prefix = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 break
 
 	# TODO remove --without-p11-kit
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --with-included-libtasn1 --enable-local-libopts --with-libgpg-error-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), gpg_error_path, config_options_string)
+        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --with-included-libtasn1 --enable-local-libopts --with-libiconv-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), iconv_prefix, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
@@ -118,6 +117,7 @@ class GnutlsConan(ConanFile):
             return
 
         self.copy("*.h", dst="include", src="%s/src" % (self.ZIP_FOLDER_NAME), keep_path=True)
+        self.copy("*.h", dst="include", src="%s/lib/includes" % (self.ZIP_FOLDER_NAME), keep_path=True)
         if self.options.shared:
             self.copy(pattern="*.so*", dst="lib", src=self.ZIP_FOLDER_NAME, keep_path=False)
             self.copy(pattern="*.dll*", dst="bin", src=self.ZIP_FOLDER_NAME, keep_path=False)
