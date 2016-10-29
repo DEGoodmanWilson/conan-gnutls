@@ -105,7 +105,7 @@ class GnutlsConan(ConanFile):
                 break
 
 	# TODO remove --without-p11-kit
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --with-included-libtasn1 --enable-local-libopts --with-libiconv-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), iconv_prefix, config_options_string)
+        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --without-idn --with-included-libtasn1 --enable-local-libopts --with-libiconv-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), iconv_prefix, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
