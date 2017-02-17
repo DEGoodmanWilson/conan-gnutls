@@ -1,0 +1,18 @@
+# test_package build dir
+test_package/build/
+
+#python files
+*.pyc
+
+#Qt creator
+*.creator
+*.creator.user
+*.config
+*.files
+*.includes
+
+#conan files
+conanbuildinfo*
+conaninfo.txt
+
+

@@ -1,16 +1,18 @@
 from conans import ConanFile
 import os, shutil
 from conans.tools import download, unzip, replace_in_file, check_md5
-from conans import CMake
+from conans import CMake, tools
 
+import sys
 
 class GnutlsConan(ConanFile):
-    name = "gnutls"
-    version = "3.4.16"
-    branch = "master"
-    ZIP_FOLDER_NAME = "gnutls-%s" % version
+    name        = "gnutls"
+    version     = "3.4.16"
+    license     = "LGPLv2.1+"
+    description = "a secure communications library for SSL, TLS and DTLS protocols and technologies around them"
+    
     generators = "cmake"
-    settings =  "os", "compiler", "arch", "build_type"
+    settings =  "os", "compiler", "arch"
     options = {"shared": [True, False],
                "enable_m_guard": [True, False],
                "disable_asm": [True, False],
@@ -22,7 +24,12 @@ class GnutlsConan(ConanFile):
                "disable_aesni_support": [True, False],
                "disable_O_flag_munging": [True, False]}
                #TODO add in non-binary flags
-    requires = 'libiconv/1.14@lasote/stable', 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
+    requires = (
+        'libiconv/1.14@lasote/stable',
+        'nettle/3.3@DEGoodmanWilson/testing',
+        'gmp/6.1.1@DEGoodmanWilson/testing',
+        'zlib/1.2.8@lasote/stable'
+    )
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
     url = "http://github.com/DEGoodmanWilson/conan-gnutls"
@@ -31,15 +38,17 @@ class GnutlsConan(ConanFile):
                       "enable_random_daemon=False", "disable_aesni_support=False", \
 		      "enable_hmac_binary_check=False", "disable_padlock_support=False", "disable_O_flag_munging=False"
 
-    def source(self):
-        zip_name = "gnutls-%s.tar.gz" % self.version
-        # download("http://ftp.heanet.ie/mirrors/ftp.gnupg.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
-        download("https://www.dropbox.com/s/7h0a0b0gfmkjp42/%s?dl=1" % zip_name, zip_name)
-        check_md5(zip_name, "093777651b9cb41f66122991c5bf3d42")
-        unzip(zip_name)
-        os.unlink(zip_name)
+    ZIP_FOLDER_NAME = "gnutls-%s" % version
 
-    def config(self):
+    def source(self):
+        zip_name = "gnutls-%s.tar.xz" % self.version
+#        download("ftp://ftp.gnutls.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
+        self.download_ftp("ftp://ftp.gnutls.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
+        tools.check_sha256(zip_name, "d99abb1b320771b58c949bab85e4b654dd1e3e9d92e2572204b7dc479d923927")
+        #tools.untargz(zip_name)
+        self.uncompress_xz(zip_name)
+        
+    def configure(self):
         del self.settings.compiler.libcxx
 
     def generic_env_configure_vars(self, verbose=False):
@@ -94,7 +103,7 @@ class GnutlsConan(ConanFile):
 
         for option_name in self.options.values.fields:
             activated = getattr(self.options, option_name)
-            if activated:
+            if activated and option_name != "shared":
                 self.output.info("Activated option! %s" % option_name)
                 config_options_string += " --%s" % option_name.replace("_", "-")
 
@@ -104,12 +113,32 @@ class GnutlsConan(ConanFile):
                 iconv_prefix = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 break
 
-	# TODO remove --without-p11-kit
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --without-p11-kit --without-idn --with-included-libtasn1 --enable-local-libopts --with-libiconv-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), iconv_prefix, config_options_string)
+        env_vars = self.generic_env_configure_vars()
+
+        # TODO remove --without-p11-kit
+        opts = [
+            "--without-p11-kit",
+            "--without-idn",
+            "--with-included-libtasn1",
+            "--enable-local-libopts",
+            "--with-libiconv-prefix=" + iconv_prefix
+        ]
+        
+        if self.options.shared:
+            opts.append("--disable-static")
+            opts.append("--enable-shared")
+        else:
+            opts.append("--enable-static")
+            opts.append("--disable-shared")
+            
+        build_options = ' '.join(opts)
+
+        configure_command = "%s ./configure %s %s" % (env_vars, build_options, config_options_string)
+        
         self.output.warn(configure_command)
-        self.run(configure_command)
-        self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
-       
+        self.run(configure_command, cwd=self.ZIP_FOLDER_NAME)
+
+        self.run("make", cwd=self.ZIP_FOLDER_NAME)
 
     def package(self):
         if self.settings.os == "Windows":
@@ -130,3 +159,69 @@ class GnutlsConan(ConanFile):
         self.cpp_info.libs = ['gnutls']
 
 
+    ########################################## Helpers ###############################################
+
+    def download_ftp(self, url, filename):
+        self.output.info("downloading ftp file from url: " + url)
+        
+        from ftplib import FTP, FTP_TLS
+        from urlparse import urlparse
+
+        u = urlparse(url)
+
+        host = u.netloc
+        paths = u.path.split("/")
+        url_filename = paths[-1]
+        paths = paths[ : -1]
+
+#        try:
+#            ftp = FTP_TLS(host)
+#        except:
+#            ftp = FTP(host)
+        ftp = FTP(host)
+
+        ftp.login()
+
+        if paths:
+            ftp.cwd('/'.join(paths))
+
+        file = open(filename, 'wb')
+        ftp.retrbinary('RETR %s' % url_filename, file.write)
+
+
+    def uncompress_xz(self, filename):
+        try:
+            self.uncompress_xz_3_3(filename)
+            return
+        except:
+            self.output.info("Could not uncompress with tarfile, maybe not running on python >=3.3")
+        
+        try:
+            self.uncompress_lzma(filename)
+            return
+        except:
+            self.output.info("Failed to uncompress with lzma library")
+            
+        self.output.info("try running tar")
+        
+        self.uncompress_tar(filename)
+        
+    def uncompress_xz_3_3(self, filename):
+        import tarfile
+
+        with tarfile.open(filename) as f:
+            f.extractall('.')
+            
+    def uncompress_lzma(self, filename):
+        import contextlib
+        import lzma
+        import tarfile
+        
+        with contextlib.closing(lzma.LZMAFile('test.tar.xz')) as xz:
+            with tarfile.open(fileobj=xz) as f:
+                f.extractall('.')
+                
+    def uncompress_tar(self, filename):
+        cmd = "tar xvfJ " + filename
+        self.output.info(cmd)
+        self.run(cmd) 
