@@ -154,12 +154,14 @@ class GnutlsConan(ConanFile):
             "--enable-static",
             "--enable-shared",
             "--without-p11-kit",
+            "--without-idn",
             "--with-included-libtasn1",
             "--enable-local-libopts",
             "--with-libiconv-prefix=" + iconv_prefix
         ])
 
         configure_command = "%s ./configure %s %s" % (env_vars, build_options, config_options_string)
+        
         self.output.warn(configure_command)
         self.run(configure_command, cwd=self.ZIP_FOLDER_NAME)
 
