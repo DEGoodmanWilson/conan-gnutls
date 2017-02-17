@@ -47,45 +47,8 @@ class GnutlsConan(ConanFile):
         tools.check_sha256(zip_name, "d99abb1b320771b58c949bab85e4b654dd1e3e9d92e2572204b7dc479d923927")
         #tools.untargz(zip_name)
         self.uncompress_xz(zip_name)
-
-    def uncompress_xz(self, filename):
-        try:
-            self.uncompress_xz_3_3(filename)
-            return
-        except:
-            self.output.info("Could not uncompress with tarfile, maybe not running on python >=3.3")
         
-        try:
-            self.uncompress_lzma(filename)
-            return
-        except:
-            self.output.info("Failed to uncompress with lzma library")
-            
-        self.output.info("try running tar")
-        
-        self.uncompress_tar(filename)
-        
-    def uncompress_xz_3_3(self, filename):
-        import tarfile
-
-        with tarfile.open(filename) as f:
-            f.extractall('.')
-            
-    def uncompress_lzma(self, filename):
-        import contextlib
-        import lzma
-        import tarfile
-        
-        with contextlib.closing(lzma.LZMAFile('test.tar.xz')) as xz:
-            with tarfile.open(fileobj=xz) as f:
-                f.extractall('.')
-                
-    def uncompress_tar(self, filename):
-        cmd = "tar xvfJ " + filename
-        self.output.info(cmd)
-        self.run(cmd) 
-        
-    def config(self):
+    def configure(self):
         del self.settings.compiler.libcxx
 
     def generic_env_configure_vars(self, verbose=False):
@@ -140,7 +103,7 @@ class GnutlsConan(ConanFile):
 
         for option_name in self.options.values.fields:
             activated = getattr(self.options, option_name)
-            if activated:
+            if activated and option_name != "shared":
                 self.output.info("Activated option! %s" % option_name)
                 config_options_string += " --%s" % option_name.replace("_", "-")
 
@@ -153,15 +116,22 @@ class GnutlsConan(ConanFile):
         env_vars = self.generic_env_configure_vars()
 
         # TODO remove --without-p11-kit
-        build_options = ' '.join([
-            "--enable-static",
-            "--enable-shared",
+        opts = [
             "--without-p11-kit",
             "--without-idn",
             "--with-included-libtasn1",
             "--enable-local-libopts",
             "--with-libiconv-prefix=" + iconv_prefix
-        ])
+        ]
+        
+        if self.options.shared:
+            opts.append("--disable-static")
+            opts.append("--enable-shared")
+        else:
+            opts.append("--enable-static")
+            opts.append("--disable-shared")
+            
+        build_options = ' '.join(opts)
 
         configure_command = "%s ./configure %s %s" % (env_vars, build_options, config_options_string)
         
@@ -189,6 +159,8 @@ class GnutlsConan(ConanFile):
         self.cpp_info.libs = ['gnutls']
 
 
+    ########################################## Helpers ###############################################
+
     def download_ftp(self, url, filename):
         self.output.info("downloading ftp file from url: " + url)
         
@@ -215,3 +187,41 @@ class GnutlsConan(ConanFile):
 
         file = open(filename, 'wb')
         ftp.retrbinary('RETR %s' % url_filename, file.write)
+
+
+    def uncompress_xz(self, filename):
+        try:
+            self.uncompress_xz_3_3(filename)
+            return
+        except:
+            self.output.info("Could not uncompress with tarfile, maybe not running on python >=3.3")
+        
+        try:
+            self.uncompress_lzma(filename)
+            return
+        except:
+            self.output.info("Failed to uncompress with lzma library")
+            
+        self.output.info("try running tar")
+        
+        self.uncompress_tar(filename)
+        
+    def uncompress_xz_3_3(self, filename):
+        import tarfile
+
+        with tarfile.open(filename) as f:
+            f.extractall('.')
+            
+    def uncompress_lzma(self, filename):
+        import contextlib
+        import lzma
+        import tarfile
+        
+        with contextlib.closing(lzma.LZMAFile('test.tar.xz')) as xz:
+            with tarfile.open(fileobj=xz) as f:
+                f.extractall('.')
+                
+    def uncompress_tar(self, filename):
+        cmd = "tar xvfJ " + filename
+        self.output.info(cmd)
+        self.run(cmd) 
