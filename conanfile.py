@@ -6,8 +6,11 @@ from conans import CMake, tools
 import sys
 
 class GnutlsConan(ConanFile):
-    name = "gnutls"
-    version = "3.4.16"
+    name        = "gnutls"
+    version     = "3.4.16"
+    license     = "LGPLv2.1+"
+    description = "a secure communications library for SSL, TLS and DTLS protocols and technologies around them"
+    
     generators = "cmake"
     settings =  "os", "compiler", "arch"
     options = {"shared": [True, False],
