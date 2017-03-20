@@ -35,7 +35,7 @@ class GnutlsConan(ConanFile):
         zip_name = "gnutls-%s.tar.gz" % self.version
         # download("http://ftp.heanet.ie/mirrors/ftp.gnupg.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
         download("https://www.dropbox.com/s/7h0a0b0gfmkjp42/%s?dl=1" % zip_name, zip_name)
-        check_md5(zip_name, "093777651b9cb41f66122991c5bf3d42")
+        check_md5(zip_name, "e8db39ebfd99ab6ef2fc4a8771ab2964")
         unzip(zip_name)
         os.unlink(zip_name)
 
