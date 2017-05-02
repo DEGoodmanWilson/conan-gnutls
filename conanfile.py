@@ -1,162 +1,172 @@
 from conans import ConanFile
-import os, shutil
-from conans.tools import download, unzip, replace_in_file, check_md5
-from conans import CMake, tools
+from conans.tools import download, pythonpath
+from conans import tools
 
-import sys
+import os
+from os import path
 
 class GnutlsConan(ConanFile):
     name        = "gnutls"
-    version     = "3.4.16"
+    version     = "3.5.11"
     license     = "LGPLv2.1+"
     description = "a secure communications library for SSL, TLS and DTLS protocols and technologies around them"
-    
-    generators = "cmake"
+    url = "http://github.com/DEGoodmanWilson/conan-gnutls"
+
     settings =  "os", "compiler", "arch"
-    options = {"shared": [True, False],
-               "enable_m_guard": [True, False],
-               "disable_asm": [True, False],
-               "enable_ld_version_script": [True, False],
-               "disable_endian_check": [True, False],
-               "enable_random_daemon": [True, False],
-               "enable_hmac_binary_check": [True, False],
-               "disable_padlock_support": [True, False],
-               "disable_aesni_support": [True, False],
-               "disable_O_flag_munging": [True, False]}
-               #TODO add in non-binary flags
+    options = {
+        "shared": [True, False],
+        "enable_m_guard": [True, False],
+        "disable_asm": [True, False],
+        "enable_ld_version_script": [True, False],
+        "disable_endian_check": [True, False],
+        "enable_random_daemon": [True, False],
+        "enable_hmac_binary_check": [True, False],
+        "disable_padlock_support": [True, False],
+        "disable_aesni_support": [True, False],
+        "disable_O_flag_munging": [True, False]
+    } #TODO add in non-binary flags
+
+    default_options = (
+        "shared=False",
+        "enable_m_guard=False",
+        "disable_asm=False",
+        "enable_ld_version_script=False",
+        "disable_endian_check=False",
+        "enable_random_daemon=False",
+        "disable_aesni_support=False",
+        "enable_hmac_binary_check=False",
+        "disable_padlock_support=False",
+        "disable_O_flag_munging=False"
+    )
+
     requires = (
         'libiconv/1.14@lasote/stable',
         'nettle/3.3@DEGoodmanWilson/testing',
-        'gmp/6.1.1@DEGoodmanWilson/testing',
-        'zlib/1.2.8@lasote/stable'
+        'gmp/6.1.2@DEGoodmanWilson/testing',
+        'zlib/1.2.8@lasote/stable',
+
+        "AutotoolsHelper/0.0.2@noface/experimental"
     )
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
-    url = "http://github.com/DEGoodmanWilson/conan-gnutls"
-    default_options = "shared=False", "enable_m_guard=False", "disable_asm=False", \
-                      "enable_ld_version_script=False", "disable_endian_check=False", \
-                      "enable_random_daemon=False", "disable_aesni_support=False", \
-		      "enable_hmac_binary_check=False", "disable_padlock_support=False", "disable_O_flag_munging=False"
-
     ZIP_FOLDER_NAME = "gnutls-%s" % version
+
+    SHA256 = "51765cc5579e250da77fbd7871507c517d01b15353cc40af7b67e9ec7b6fe28f"
 
     def source(self):
         zip_name = "gnutls-%s.tar.xz" % self.version
-#        download("ftp://ftp.gnutls.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
-        self.download_ftp("ftp://ftp.gnutls.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
-        tools.check_sha256(zip_name, "d99abb1b320771b58c949bab85e4b654dd1e3e9d92e2572204b7dc479d923927")
+        download("https://www.gnupg.org/ftp/gcrypt/gnutls/v3.5/%s" % zip_name, zip_name)
+#        self.download_ftp("ftp://ftp.gnutls.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
+        tools.check_sha256(zip_name, self.SHA256)
         #tools.untargz(zip_name)
         self.uncompress_xz(zip_name)
         
     def configure(self):
         del self.settings.compiler.libcxx
 
-    def generic_env_configure_vars(self, verbose=False):
-        """Reusable in any lib with configure!!"""
-	
-        # find nettle and hogweed paths
-        nettle_lib_path = ""
-        nettle_include_path = ""
-        gmp_lib_path = ""
-        gmp_include_path = ""
-        for path in self.deps_cpp_info.lib_paths:
-            if "nettle" in path:
-                nettle_lib_path = path
-            elif "gmp" in path:
-                gmp_lib_path = path
-
-        for path in self.deps_cpp_info.include_paths:
-            if "nettle" in path:
-                nettle_include_path = path
-            elif "gmp" in path:
-                gmp_include_path = path
-
-
-        if self.settings.os == "Linux" or self.settings.os == "Macos":
-            libs = 'LIBS="%s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
-            ldflags = 'LDFLAGS="%s -liconv"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
-            archflag = "-m32" if self.settings.arch == "x86" else ""
-            cflags = 'CFLAGS="-fPIC %s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
-            cpp_flags = 'CPPFLAGS="%s %s %s"' % (archflag, " ".join(self.deps_cpp_info.cppflags), " ".join(['-I"%s"' % lib for lib in self.deps_cpp_info.include_paths]))
-            package_flags = 'NETTLE_CFLAGS="-I%s" NETTLE_LIBS="-L%s -lnettle" HOGWEED_CFLAGS="-I%s" HOGWEED_LIBS="-L%s -lhogweed" GMP_CFLAGS="-I%s" GMP_LIBS="-L%s -lgmp"' % (nettle_include_path, nettle_lib_path, nettle_include_path, nettle_lib_path, gmp_include_path, gmp_lib_path)
-            command = "env %s %s %s %s %s" % (libs, ldflags, cflags, cpp_flags, package_flags)
-        elif self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
-            cl_args = " ".join(['/I"%s"' % lib for lib in self.deps_cpp_info.include_paths])
-            lib_paths= ";".join(['"%s"' % lib for lib in self.deps_cpp_info.lib_paths])
-            command = "SET LIB=%s;%%LIB%% && SET CL=%s" % (lib_paths, cl_args)
-            if verbose:
-                command += " && SET LINK=/VERBOSE"
-
-
-        return command
-       
     def build(self):
         if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return # no can do boss!
+            # gnutls itself work on windows. So if the build is broken, let windows
+            # users help to fix
+            self.output.warn("May not work on Windows!")
 
-        self.build_with_configure()
+        self.prepare_build()
+        self.configure_and_make()
             
-        
-    def build_with_configure(self):
-        config_options_string = ""
-
-        for option_name in self.options.values.fields:
-            activated = getattr(self.options, option_name)
-            if activated and option_name != "shared":
-                self.output.info("Activated option! %s" % option_name)
-                config_options_string += " --%s" % option_name.replace("_", "-")
-
-        iconv_prefix = ""
-        for path in self.deps_cpp_info.lib_paths:
-            if "iconv" in path:
-                iconv_prefix = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
-                break
-
-        env_vars = self.generic_env_configure_vars()
-
-        # TODO remove --without-p11-kit
-        opts = [
-            "--without-p11-kit",
-            "--without-idn",
-            "--with-included-libtasn1",
-            "--enable-local-libopts",
-            "--with-libiconv-prefix=" + iconv_prefix
-        ]
-        
-        if self.options.shared:
-            opts.append("--disable-static")
-            opts.append("--enable-shared")
-        else:
-            opts.append("--enable-static")
-            opts.append("--disable-shared")
-            
-        build_options = ' '.join(opts)
-
-        configure_command = "%s ./configure %s %s" % (env_vars, build_options, config_options_string)
-        
-        self.output.warn(configure_command)
-        self.run(configure_command, cwd=self.ZIP_FOLDER_NAME)
-
-        self.run("make", cwd=self.ZIP_FOLDER_NAME)
-
     def package(self):
-        if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return
+        SRC = self.ZIP_FOLDER_NAME
 
-        self.copy("*.h", dst="include", src="%s/src" % (self.ZIP_FOLDER_NAME), keep_path=True)
-        self.copy("*.h", dst="include", src="%s/lib/includes" % (self.ZIP_FOLDER_NAME), keep_path=True)
+        self.copy("*.h", dst="include", src=path.join(SRC, "src"), keep_path=True)
+        self.copy("*.h", dst="include", src=path.join(SRC, "lib", "includes"), keep_path=True)
         if self.options.shared:
-            self.copy(pattern="*.so*", dst="lib", src=self.ZIP_FOLDER_NAME, keep_path=False)
-            self.copy(pattern="*.dll*", dst="bin", src=self.ZIP_FOLDER_NAME, keep_path=False)
+            self.copy(pattern="*.so*", dst="lib", src=SRC, keep_path=False)
+            self.copy(pattern="*.dll*", dst="bin", src=SRC, keep_path=False)
         else:
-            self.copy(pattern="*.a", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
-        
-        self.copy(pattern="*.lib", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
-        
+            self.copy(pattern="*.a", dst="lib", src=SRC, keep_path=False)
+
+        self.copy(pattern="*.lib", dst="lib", src=SRC, keep_path=False)
+
     def package_info(self):
         self.cpp_info.libs = ['gnutls']
+
+    ##################################################################################################
+
+    def prepare_build(self):
+        if getattr(self, "package_folder", None) is None:
+            self.package_folder = path.abspath(path.join(".", "install"))
+            self._try_make_dir(self.package_folder)
+
+    def configure_and_make(self):
+        with tools.chdir(self.ZIP_FOLDER_NAME), pythonpath(self):
+            from autotools_helper import Autotools
+
+            autot = Autotools(self,
+               shared      = self.options.shared)
+
+            self.autotools_build(autot)
+
+    def autotools_build(self, autot):
+        self.add_options(autot)
+
+        # TODO remove --without-p11-kit
+        autot.without_feature("p11-kit")
+        autot.without_feature("idn")
+        autot.with_feature("included-libtasn1")
+        autot.with_feature("included-unistring")
+#        autot.options["with-included-unistring"] = ""
+        #autot.with_feature("libiconv-prefix=" + iconv_prefix)
+        autot.enable("local-libopts")
+
+        extra_env = self.make_env()
+
+        with tools.environment_append(extra_env):
+            autot.configure()
+            autot.build()
+            autot.install()
+
+    def add_options(self, autot):
+        for option_name in self.options.values.fields:
+            if not getattr(self.options, option_name) or option_name == "shared":
+                continue
+
+            self.output.info("Activate option: %s" % option_name)
+
+            opt = option_name.replace("_", "-").split("-", 1)
+
+            if opt[0] == "enable":
+                autot.enable(opt[1])
+            elif opt[0] == "disable":
+                autot.enable(opt[1])
+
+    def make_env(self):
+        env = {}
+
+        self.make_pkg_config_env(env, "nettle")
+
+        env["HOGWEED_CFLAGS"] = env["NETTLE_CFLAGS"]
+        env["HOGWEED_LIBS"] = env["NETTLE_LIBS"]
+
+        return env
+
+    def make_pkg_config_env(self, env, dep_name, **args):
+        deps = self.deps_cpp_info[dep_name]
+        CFLAGS = " -I".join([""] + deps.include_paths)
+        LIBS   = " -L".join([""] + deps.lib_paths)
+        LIBS  += " -l".join([""] + args.get('libs', deps.libs))
+
+        env[dep_name.upper() + '_CFLAGS'] = CFLAGS
+        env[dep_name.upper() + '_LIBS']   = LIBS
+
+        self.output.info("env for %s: CFLAGS='%s' LIBS='%s' " % (dep_name , CFLAGS, LIBS))
+
+        return env
+
+    def _try_make_dir(self, folder):
+        try:
+            os.mkdir(folder)
+        except OSError:
+            #dir already exist
+            pass
 
 
     ########################################## Helpers ###############################################
@@ -217,7 +227,7 @@ class GnutlsConan(ConanFile):
         import lzma
         import tarfile
         
-        with contextlib.closing(lzma.LZMAFile('test.tar.xz')) as xz:
+        with contextlib.closing(lzma.LZMAFile(filename)) as xz:
             with tarfile.open(fileobj=xz) as f:
                 f.extractall('.')
                 

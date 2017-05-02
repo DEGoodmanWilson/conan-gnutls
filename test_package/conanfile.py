@@ -9,7 +9,7 @@ from shutil import copyfile
 username = os.getenv("CONAN_USERNAME", "paulobrizolara")
 channel = os.getenv("CONAN_CHANNEL", "testing")
 library = "gnutls"
-version = "3.4.16"
+version = "3.5.11"
 
 class PackageTest(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
