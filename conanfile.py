@@ -22,7 +22,7 @@ class GnutlsConan(ConanFile):
                "disable_aesni_support": [True, False],
                "disable_O_flag_munging": [True, False]}
                #TODO add in non-binary flags
-    requires = 'libiconv/1.14@lasote/stable', 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@lasote/stable'
+    requires = 'libiconv/1.15@bincrafters/stable', 'nettle/3.3@DEGoodmanWilson/testing', 'gmp/6.1.1@DEGoodmanWilson/testing', 'zlib/1.2.8@conan/stable'
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
     url = "http://github.com/DEGoodmanWilson/conan-gnutls"
@@ -34,8 +34,8 @@ class GnutlsConan(ConanFile):
     def source(self):
         zip_name = "gnutls-%s.tar.gz" % self.version
         # download("http://ftp.heanet.ie/mirrors/ftp.gnupg.org/gcrypt/gnutls/v3.4/%s" % zip_name, zip_name)
-        download("https://www.dropbox.com/s/7h0a0b0gfmkjp42/%s?dl=1" % zip_name, zip_name)
-        check_md5(zip_name, "e8db39ebfd99ab6ef2fc4a8771ab2964")
+        download("https://www.dropbox.com/s/njds242a0mk62wu/%s?dl=1" % zip_name, zip_name)
+        check_md5(zip_name, "b4b58ca69bf58029553e0e3eac09f5b9")
         unzip(zip_name)
         os.unlink(zip_name)
 
