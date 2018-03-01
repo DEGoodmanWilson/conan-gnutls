@@ -10,4 +10,4 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
     pyenv activate conan
 fi
 
-PKG_CONFIG=`which pkg-config`; python build.py
+python build.py
