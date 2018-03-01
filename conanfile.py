@@ -3,6 +3,7 @@
 
 from conans import ConanFile, AutoToolsBuildEnvironment, tools
 import os
+import subprocess
 
 
 class GnutlsConan(ConanFile):
@@ -43,8 +44,6 @@ class GnutlsConan(ConanFile):
         os.rename(extracted_dir, "sources")
 
     def ugly_env_configure_vars(self, verbose=False):
-        """Reusable in any lib with configure!!"""
-    
         # find nettle and hogweed paths
         nettle_lib_path = ""
         nettle_include_path = ""
@@ -64,6 +63,7 @@ class GnutlsConan(ConanFile):
 
 
         package_flags = {
+            'PKG_CONFIG': subprocess.check_output(["which", "pkg-config"]).strip(), # find pkg-config
             'NETTLE_CFLAGS': "-I{0}".format(nettle_include_path),
             'NETTLE_LIBS': "-L{0} -lnettle".format(nettle_lib_path),
             'HOGWEED_CFLAGS': "-I{0}".format(nettle_include_path),
@@ -77,7 +77,6 @@ class GnutlsConan(ConanFile):
         if self.settings.compiler == 'Visual Studio':
             # self.build_vs()
             self.output.fatal("No windows support yet. Sorry. Help a fellow out and contribute back?")
-
 
         with tools.chdir("sources"):
             with tools.environment_append(self.ugly_env_configure_vars()):
