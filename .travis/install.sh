@@ -20,6 +20,7 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
 else
     sudo apt-get update
     sudo apt-get install pkg-config
+    which pkg-config
 fi
 
 pip install conan --upgrade
