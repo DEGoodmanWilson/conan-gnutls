@@ -85,6 +85,9 @@ class GnutlsConan(ConanFile):
                 env_build = AutoToolsBuildEnvironment(self)
                 env_build.fpic = True
 
+                print os.environ
+                print os.listdir(os.environ['NETTLE_LIBS'].split('-L')[-1].split(' -l')[0])
+
                 config_args = []
                 for option_name in self.options.values.fields:
                     if(option_name == "shared"):
@@ -100,6 +103,7 @@ class GnutlsConan(ConanFile):
                             self.output.info("Activated option! %s" % option_name)
                             config_args.append("--%s" % option_name)
 
+                # TODO we can do better.
                 config_args.append("--without-p11-kit")
                 config_args.append("--without-idn")
                 config_args.append("--with-included-libtasn1")
