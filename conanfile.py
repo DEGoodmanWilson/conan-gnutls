@@ -27,7 +27,7 @@ class GnutlsConan(ConanFile):
                       "enable-ld-version-script=False", "disable-endian-check=False", \
                       "enable-random-daemon=False", "disable-aesni-support=False", \
               "enable-hmac-binary-check=False", "disable-padlock-support=False", "disable-O-flag-munging=False"
-    requires = 'libiconv/1.15@bincrafters/stable', 'nettle/3.3@DEGoodmanWilson/stable', 'gmp/6.1.1@DEGoodmanWilson/stable', 'zlib/1.2.8@conan/stable'
+    requires = 'libiconv/1.15@bincrafters/stable', 'nettle/3.4@DEGoodmanWilson/stable', 'gmp/6.1.1@DEGoodmanWilson/stable', 'zlib/1.2.8@conan/stable'
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
 
