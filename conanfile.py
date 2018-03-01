@@ -101,6 +101,7 @@ class GnutlsConan(ConanFile):
                             self.output.info("Activated option! %s" % option_name)
                             config_args.append("--%s" % option_name)
 
+                config_args.append("--disable-tests")
                 # TODO we can do better.
                 config_args.append("--without-p11-kit")
                 config_args.append("--without-idn")
