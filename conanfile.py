@@ -85,8 +85,8 @@ class GnutlsConan(ConanFile):
                 env_build = AutoToolsBuildEnvironment(self)
                 env_build.fpic = True
 
-                print os.environ
-                print os.listdir(os.environ['NETTLE_LIBS'].split('-L')[-1].split(' -l')[0])
+                self.output.info(os.environ)
+                self.output.info(os.listdir(os.environ['NETTLE_LIBS'].split('-L')[-1].split(' -l')[0]))
 
                 config_args = []
                 for option_name in self.options.values.fields:
