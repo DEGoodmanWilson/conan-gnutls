@@ -3,6 +3,8 @@
 set -e
 set -x
 
+sudo apt-get install pkg-config
+
 if [[ "$(uname -s)" == 'Darwin' ]]; then
     brew update || brew update
     brew outdated pyenv || brew upgrade pyenv
