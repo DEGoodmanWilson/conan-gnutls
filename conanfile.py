@@ -85,9 +85,6 @@ class GnutlsConan(ConanFile):
                 env_build = AutoToolsBuildEnvironment(self)
                 env_build.fpic = True
 
-                self.output.info(os.environ)
-                self.output.info(os.listdir(os.environ['NETTLE_LIBS'].split('-L')[-1].split(' -l')[0]))
-
                 config_args = []
                 for option_name in self.options.values.fields:
                     if(option_name == "shared"):
@@ -117,7 +114,11 @@ class GnutlsConan(ConanFile):
                         break
                 config_args.append("--with-libiconv-prefix={0}".format(iconv_prefix))
 
-                env_build.configure(args=config_args)
+                # This is a terrible hack to make cross-compiling on Travis work
+                if (self.settings.arch=='x86' and self.settings.os=='Linux'):
+                    env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
+                else:
+                    env_build.configure(args=config_args)
                 env_build.make()
 
     def package(self):
