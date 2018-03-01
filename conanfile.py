@@ -85,6 +85,8 @@ class GnutlsConan(ConanFile):
                 env_build = AutoToolsBuildEnvironment(self)
                 env_build.fpic = True
 
+                self.output.info("PKG_CONFIG = {0}".format(os.environ["PKG_CONFIG"]))
+
                 config_args = []
                 for option_name in self.options.values.fields:
                     if(option_name == "shared"):
