@@ -63,7 +63,7 @@ class GnutlsConan(ConanFile):
 
 
         package_flags = {
-            'PKG_CONFIG': '/usr/bin/pkg-config', #subprocess.check_output(["which", "pkg-config"]).strip(), # find pkg-config
+            # 'PKG_CONFIG': subprocess.check_output(["which", "pkg-config"]).strip(), # find pkg-config
             'NETTLE_CFLAGS': "-I{0}".format(nettle_include_path),
             'NETTLE_LIBS': "-L{0} -lnettle".format(nettle_lib_path),
             'HOGWEED_CFLAGS': "-I{0}".format(nettle_include_path),
@@ -84,7 +84,7 @@ class GnutlsConan(ConanFile):
                 env_build = AutoToolsBuildEnvironment(self)
                 env_build.fpic = True
 
-                self.output.info("PKG_CONFIG = {0}".format(os.environ["PKG_CONFIG"]))
+                # self.output.info("PKG_CONFIG = {0}".format(os.environ["PKG_CONFIG"]))
 
                 config_args = []
                 for option_name in self.options.values.fields:
