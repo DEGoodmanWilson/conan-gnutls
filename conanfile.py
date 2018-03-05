@@ -5,7 +5,6 @@ from conans import ConanFile, AutoToolsBuildEnvironment, tools
 import os
 import subprocess
 
-
 class GnutlsConan(ConanFile):
     name = "gnutls"
     version = "3.6.2"
@@ -135,5 +134,8 @@ class GnutlsConan(ConanFile):
         
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        if tools.os_info.is_macos:
+            self.cpp_info.exelinkflags = ['-framework CoreFoundation', '-framework Security']
+            self.cpp_info.sharedlinkflags = self.cpp_info.exelinkflags
 
 
