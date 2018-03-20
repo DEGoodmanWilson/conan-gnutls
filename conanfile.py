@@ -124,7 +124,7 @@ class GnutlsConan(ConanFile):
 
     def package(self):
         self.copy(pattern="COPYING*", src="sources")
-        self.copy(pattern="*.h", dst="include", src="sources")
+        self.copy(pattern="*.h", dst="include/gnutls", src="sources/lib/includes/gnutls", keep_path=False)
         # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
         self.copy(pattern="*libgnutls.lib", dst="lib", src="sources", keep_path=False)
         self.copy(pattern="*libgnutls.a", dst="lib", src="sources", keep_path=False)
