@@ -126,14 +126,14 @@ class GnutlsConan(ConanFile):
         self.copy(pattern="COPYING*", src="sources")
         self.copy(pattern="*.h", dst="include", src="sources")
         # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*libgnutls.lib", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*libgnutls.a", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*libgnutls.so*", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*libgnutls.dylib", dst="lib", src="sources", keep_path=False)
 
         
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = ['gnutls']
         if tools.os_info.is_macos:
             self.cpp_info.exelinkflags = ['-framework CoreFoundation', '-framework Security']
             self.cpp_info.sharedlinkflags = self.cpp_info.exelinkflags
