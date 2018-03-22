@@ -8,7 +8,7 @@ import subprocess
 class GnutlsConan(ConanFile):
     name = "gnutls"
     version = "3.6.2"
-    url = "http://github.com/DEGoodmanWilson/conan-gmp"
+    url = "http://github.com/DEGoodmanWilson/conan-gnutls"
     description = "The GNU TLS library"
     license = "https://www.gnutls.org/manual/html_node/Copying-Information.html#Copying-Information"
     settings =  "os", "compiler", "arch", "build_type"
@@ -30,6 +30,9 @@ class GnutlsConan(ConanFile):
     requires = 'libiconv/1.15@bincrafters/stable', 'nettle/3.4@DEGoodmanWilson/stable', 'gmp/6.1.1@DEGoodmanWilson/stable', 'zlib/[~=1.2]@conan/stable'
     # TODO add p11-kit http://p11-glue.freedesktop.org/p11-kit.html and libidn and libdane
 
+    def configure(self):
+        # Because this is pure C
+        del self.settings.compiler.libcxx
 
     def source(self):
         zip_name = "gnutls-{0}.tar.gz".format(self.version)
