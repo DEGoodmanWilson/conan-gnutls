@@ -35,14 +35,13 @@ class GnutlsConan(ConanFile):
         del self.settings.compiler.libcxx
 
     def source(self):
-        zip_name = "gnutls-{0}.tar.gz".format(self.version)
-        tools.download("https://www.dropbox.com/s/r477opmxmhhee5g/{0}?dl=1".format(zip_name), zip_name)
-        # zip_name = "gnutls-{0}.tar.xz".format(self.version)
-        # tools.download("https://www.gnupg.org/ftp/gcrypt/gnutls/v{0}/{1}".format(".".join(self.version.split(".")[0:2]), zip_name), zip_name)
+        tag_name = "{0}_{1}".format(self.name, self.version.replace(".", "_"))
+        zip_name = "{0}-{1}.tar.gz".format(self.name, tag_name)
+        tools.download("https://gitlab.com/{0}/{0}/-/archive/{1}/{2}".format(self.name, tag_name, zip_name), zip_name)
         tools.untargz(zip_name)
         os.unlink(zip_name)
 
-        extracted_dir = self.name + "-" + self.version
+        extracted_dir = "{0}-{1}".format(self.name, tag_name)
         os.rename(extracted_dir, "sources")
 
     def ugly_env_configure_vars(self, verbose=False):
@@ -82,8 +81,10 @@ class GnutlsConan(ConanFile):
 
         with tools.chdir("sources"):
             with tools.environment_append(self.ugly_env_configure_vars()):
-
+                self.run('PATH=/usr/local/opt/gettext/bin:$PATH make autoreconf')
+                
                 env_build = AutoToolsBuildEnvironment(self)
+
                 env_build.fpic = True
 
                 # self.output.info("PKG_CONFIG = {0}".format(os.environ["PKG_CONFIG"]))
@@ -102,7 +103,11 @@ class GnutlsConan(ConanFile):
                         if activated:
                             self.output.info("Activated option! %s" % option_name)
                             config_args.append("--%s" % option_name)
-
+                config_args.append("--disable-full-test-suite")
+                config_args.append("--disable-valgrind-tests")
+                config_args.append("--disable-doc")
+                config_args.append("--disable-guile")
+                config_args.append("--disable-dependency-tracking")
                 config_args.append("--disable-tests")
                 # TODO we can do better.
                 config_args.append("--without-p11-kit")
