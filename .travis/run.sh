@@ -8,8 +8,6 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
         eval "$(pyenv init -)"
     fi
     pyenv activate conan
-else
-    apt-get install gperf
 fi
 
 python build.py
