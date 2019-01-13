@@ -20,6 +20,7 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
     pyenv rehash
     pyenv activate conan
 else
+    sudo apt-get -qq update
     sudo apt-get install gperf
 fi
 
