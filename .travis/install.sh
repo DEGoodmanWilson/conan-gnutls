@@ -9,6 +9,7 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
     brew install pyenv-virtualenv
     brew install cmake || true
     brew install pkg-config || true
+    brew install autoconf || true
 
     if which pyenv > /dev/null; then
         eval "$(pyenv init -)"
