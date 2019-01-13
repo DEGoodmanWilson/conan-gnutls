@@ -22,6 +22,8 @@ if [[ "$(uname -s)" == 'Darwin' ]]; then
 else
     sudo apt-get -qq update
     sudo apt-get install gperf
+    which gperf
+    gperf --version
 fi
 
 pip install conan --upgrade
